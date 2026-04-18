@@ -8,22 +8,20 @@ import os
 import json
 import logging
 
-import vertexai
-from vertexai.generative_models import GenerativeModel, GenerationConfig
+import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 
 
 def _init_vertex() -> None:
-    """Initialize the Vertex AI SDK with project/location from env."""
-    project = os.environ.get("GCP_PROJECT", "")
-    location = os.environ.get("GCP_LOCATION", "us-central1")
-    if not project:
+    """Initialize the Gemini SDK with API Key from env."""
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
         logger.warning(
-            "GCP_PROJECT env var is not set. "
-            "Vertex AI calls will fail until it is configured."
+            "GEMINI_API_KEY env var is not set. "
+            "Gemini AI calls will fail until it is configured."
         )
-    vertexai.init(project=project, location=location)
+    genai.configure(api_key=api_key)
 
 
 class VertexClient:
@@ -31,7 +29,7 @@ class VertexClient:
 
     def __init__(self) -> None:
         self._initialized = False
-        self.model: GenerativeModel | None = None
+        self.model: genai.GenerativeModel | None = None
 
     def _ensure_initialized(self) -> None:
         """Lazy-init so import-time doesn't crash if SDK isn't ready."""
@@ -39,11 +37,11 @@ class VertexClient:
             return
         try:
             _init_vertex()
-            self.model = GenerativeModel("gemini-1.5-pro")
+            self.model = genai.GenerativeModel("gemini-1.5-pro")
             self._initialized = True
-            logger.info("Vertex AI model loaded successfully.")
+            logger.info("Gemini AI model loaded successfully.")
         except Exception as e:
-            logger.error("Failed to initialize Vertex AI: %s", e, exc_info=True)
+            logger.error("Failed to initialize Gemini AI: %s", e, exc_info=True)
             self.model = None
             self._initialized = True  # don't retry on every call
 
@@ -59,21 +57,20 @@ class VertexClient:
 
         if not self.model:
             logger.warning(
-                "Vertex AI model not available — returning stub decision."
+                "Gemini AI model not available — returning stub decision."
             )
             return {
                 "selected_route_id": "R-002",
                 "action": "REROUTE",
                 "reasoning": (
-                    "Stub decision: Vertex AI model was not loaded. "
-                    "Configure GCP_PROJECT and authenticate via "
-                    "'gcloud auth application-default login'."
+                    "Stub decision: Gemini AI model was not loaded. "
+                    "Configure GEMINI_API_KEY environment variable."
                 ),
                 "requires_human": False,
                 "new_eta_offset_hours": 28.5,
             }
 
-        generation_config = GenerationConfig(
+        generation_config = genai.GenerationConfig(
             response_mime_type="application/json",
             temperature=0.0,
         )
@@ -84,7 +81,7 @@ class VertexClient:
                 generation_config=generation_config,
             )
             raw = response.text
-            logger.info("Vertex AI raw response: %s", raw[:500])
+            logger.info("Gemini AI raw response: %s", raw[:500])
             return json.loads(raw)
         except json.JSONDecodeError as e:
             logger.error(
@@ -93,5 +90,5 @@ class VertexClient:
             )
             raise
         except Exception as e:
-            logger.error("Error calling Vertex AI: %s", e, exc_info=True)
+            logger.error("Error calling Gemini AI: %s", e, exc_info=True)
             raise
