@@ -46,6 +46,21 @@ async def create_topics() -> None:
             num_partitions=settings.threat_partitions,
             replication_factor=1,
         ),
+        NewTopic(
+            name=settings.anomaly_alerts_topic,
+            num_partitions=settings.anomaly_alerts_partitions,
+            replication_factor=1,
+        ),
+        NewTopic(
+            name=settings.optimization_requests_topic,
+            num_partitions=settings.optimization_requests_partitions,
+            replication_factor=1,
+        ),
+        NewTopic(
+            name=settings.reroute_decisions_topic,
+            num_partitions=settings.reroute_decisions_partitions,
+            replication_factor=1,
+        ),
     ]
 
     try:

@@ -99,6 +99,28 @@ services:
     profiles:
       - flink
 
+  llm-service:
+    build:
+      context: ../
+      dockerfile: services/llm-service/Dockerfile
+    container_name: logistics-llm-optimization
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../services/llm-service/.env
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      REDIS_URL: redis://redis:6379/0
+    # Mount the local gcloud config to allow Vertex AI access if not using a key file
+    volumes:
+      - ~/.config/gcloud:/root/.config/gcloud:ro
+    restart: on-failure
+    profiles:
+      - llm
+
 volumes:
   redpanda_data:
     driver: local

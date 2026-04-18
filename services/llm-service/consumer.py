@@ -18,6 +18,15 @@ logger = logging.getLogger(__name__)
 KAFKA_BOOTSTRAP_SERVERS = os.environ.get(
     "KAFKA_BOOTSTRAP_SERVERS", "localhost:19092"
 )
+OPTIMIZATION_REQUESTS_TOPIC = os.environ.get(
+    "OPTIMIZATION_REQUESTS_TOPIC", "optimization-requests"
+)
+REROUTE_DECISIONS_TOPIC = os.environ.get(
+    "REROUTE_DECISIONS_TOPIC", "reroute-decisions"
+)
+CONSUMER_GROUP_ID = os.environ.get(
+    "LLM_CONSUMER_GROUP_ID", "llm-optimization-group"
+)
 
 
 class AIServiceConsumer:
@@ -43,9 +52,9 @@ class AIServiceConsumer:
     # ── Lifecycle ────────────────────────────────────────────────────
     async def start(self) -> None:
         self.consumer = AIOKafkaConsumer(
-            "optimization-requests",
+            OPTIMIZATION_REQUESTS_TOPIC,
             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-            group_id="llm-optimization-group",
+            group_id=CONSUMER_GROUP_ID,
             auto_offset_reset="earliest",
         )
         self.producer = AIOKafkaProducer(
@@ -123,7 +132,9 @@ class AIServiceConsumer:
             decision_json = json.dumps(
                 execution.model_dump(mode="json")
             ).encode("utf-8")
-            await self.producer.send_and_wait("reroute-decisions", decision_json)
+            await self.producer.send_and_wait(
+                REROUTE_DECISIONS_TOPIC, decision_json
+            )
 
         except Exception:
             logger.exception(

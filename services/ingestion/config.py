@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     anomaly_alerts_partitions: int = 3
     optimization_requests_topic: str = "optimization-requests"
     optimization_requests_partitions: int = 3
+    reroute_decisions_topic: str = "reroute-decisions"
+    reroute_decisions_partitions: int = 3
 
     # --- Generator Defaults ---
     generator_rate_per_sec: int = 100
