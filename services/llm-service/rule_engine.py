@@ -6,7 +6,7 @@ that merges them with a computed risk score and execution tier.
 """
 import uuid
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from pydantic import BaseModel
 
@@ -63,7 +63,7 @@ class LLMOptimizationRequest(BaseModel):
 
 # ── LLM Output Schema ───────────────────────────────────────────────
 class LLMDecision(BaseModel):
-    selected_route_id: str
+    selected_route_id: Optional[str] = None
     action: LLMAction
     reasoning: str
     requires_human: bool

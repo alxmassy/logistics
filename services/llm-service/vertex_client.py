@@ -39,7 +39,7 @@ class VertexClient:
             return
         try:
             _init_vertex()
-            self.model = GenerativeModel("gemini-1.5-pro")
+            self.model = GenerativeModel("gemini-2.5-pro")
             self._initialized = True
             logger.info("Vertex AI model loaded successfully.")
         except Exception as e:

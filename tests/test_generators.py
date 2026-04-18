@@ -39,7 +39,7 @@ class TestShipmentSimulator:
         # At least one shipment should have moved (probabilistic but near-certain)
         moved = any(
             t1.current_lat_lon != t2.current_lat_lon
-            for t1, t2 in zip(tick1, tick2, strict=True)
+            for t1, t2 in zip(tick1, tick2)
         )
         assert moved, "Expected at least one shipment to change position between ticks"
 

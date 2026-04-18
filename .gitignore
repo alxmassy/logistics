@@ -38,3 +38,4 @@ docker-compose.override.yml
 
 # Redpanda / Kafka
 /data/
+gcp-key.json

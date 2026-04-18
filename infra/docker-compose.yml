@@ -101,8 +101,8 @@ services:
 
   llm-service:
     build:
-      context: ../
-      dockerfile: services/llm-service/Dockerfile
+      context: ../services/llm-service
+      dockerfile: Dockerfile
     container_name: logistics-llm-optimization
     depends_on:
       redpanda:
@@ -114,6 +114,7 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
       REDIS_URL: redis://redis:6379/0
+      GOOGLE_APPLICATION_CREDENTIALS: /app/gcp-key.json
     # Mount the local gcloud config to allow Vertex AI access if not using a key file
     volumes:
       - ~/.config/gcloud:/root/.config/gcloud:ro
