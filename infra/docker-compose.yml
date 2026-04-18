@@ -1,0 +1,106 @@
+# =============================================================================
+# Logistics Platform — Local Development Infrastructure
+#
+# Services:
+#   - Redpanda: Kafka-compatible streaming (ports 19092, 18081, 18082)
+#   - Redpanda Console: Web UI for inspecting topics (port 8080)
+#   - Redis: In-memory cache for shipment context (port 6379)
+#   - Flink Job: PyFlink collision detection (standalone mode)
+#
+# Usage:
+#   docker compose -f infra/docker-compose.yml up -d
+#   docker compose -f infra/docker-compose.yml down
+#
+# Build Flink image (first time only):
+#   docker compose -f infra/docker-compose.yml build flink-job
+# =============================================================================
+
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
+    container_name: logistics-redpanda
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --smp=1
+      - --memory=512M
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+      - --schema-registry-addr=internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --pandaproxy-addr=internal://0.0.0.0:8082,external://0.0.0.0:18082
+    ports:
+      - "19092:19092"   # Kafka API (external)
+      - "18081:18081"   # Schema Registry
+      - "18082:18082"   # Panda Proxy (REST)
+      - "9644:9644"     # Admin API
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:v2.5.2
+    container_name: logistics-redpanda-console
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      CONFIG_FILEPATH: ""
+      KAFKA_BROKERS: redpanda:9092
+      REDPANDA_ADMINAPI_ENABLED: "true"
+      REDPANDA_ADMINAPI_URLS: "http://redpanda:9644"
+
+  redis:
+    image: redis:7-alpine
+    container_name: logistics-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  flink-job:
+    build:
+      context: ../
+      dockerfile: infra/flink/Dockerfile
+    container_name: logistics-flink-collision
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      PYTHONUNBUFFERED: "1"
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      TELEMETRY_TOPIC: shipment-telemetry
+      THREAT_TOPIC: threat-signals
+      ANOMALY_ALERTS_TOPIC: anomaly-alerts
+      WATERMARK_TOLERANCE_MS: "120000"
+      THREAT_TTL_S: "600"
+      FLINK_TELEMETRY_GROUP_ID: flink-collision-telemetry
+      FLINK_THREAT_GROUP_ID: flink-collision-threats
+    volumes:
+      # Mount job code for live reload during development
+      - ../services/prediction/flink_job/collision_job.py:/app/collision_job.py:ro
+      - ../services/prediction/flink_job/geometry.py:/app/geometry.py:ro
+    restart: on-failure
+    # profiles lets you choose whether to start the Flink job or not:
+    #   docker compose -f infra/docker-compose.yml up -d              (without flink)
+    #   docker compose -f infra/docker-compose.yml --profile flink up -d  (with flink)
+    profiles:
+      - flink
+
+volumes:
+  redpanda_data:
+    driver: local
+  redis_data:
+    driver: local

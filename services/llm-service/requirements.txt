@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+aiokafka
+google-cloud-aiplatform
+pydantic>=2.0
+redis[asyncio]
+python-dotenv
+websockets
