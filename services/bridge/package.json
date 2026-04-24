@@ -1,0 +1,18 @@
+{
+  "name": "logistics-bridge",
+  "version": "1.0.0",
+  "description": "Kafka → Socket.io WebSocket bridge for the Logistics Dashboard",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "socket.io": "^4.7.5",
+    "ioredis": "^5.4.1",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2"
+  }
+}

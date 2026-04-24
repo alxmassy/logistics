@@ -122,6 +122,26 @@ services:
     profiles:
       - llm
 
+  bridge:
+    build:
+      context: ../services/bridge
+    container_name: logistics-bridge
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      REDIS_URL: redis://redis:6379/0
+      LLM_SERVICE_URL: http://logistics-llm-optimization:8000
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+    restart: on-failure
+    profiles:
+      - dashboard
+
 volumes:
   redpanda_data:
     driver: local

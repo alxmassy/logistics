@@ -1,0 +1,221 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+@import "mapbox-gl/dist/mapbox-gl.css";
+
+/* ── Custom Theme Variables ────────────────────────────────────────── */
+@theme {
+  --color-navy-950: #060e1a;
+  --color-navy-900: #0a1628;
+  --color-navy-800: #111d35;
+  --color-navy-700: #1a2744;
+  --color-navy-600: #243356;
+  --color-navy-500: #2e4068;
+
+  --color-charcoal-600: #475569;
+  --color-charcoal-500: #64748b;
+  --color-charcoal-400: #94a3b8;
+  --color-charcoal-300: #cbd5e1;
+
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+
+  --color-threat-red: #ef4444;
+  --color-threat-red-dim: rgba(239, 68, 68, 0.15);
+  --color-escalation-yellow: #eab308;
+  --color-escalation-yellow-dim: rgba(234, 179, 8, 0.15);
+  --color-clear-green: #22c55e;
+  --color-clear-green-dim: rgba(34, 197, 94, 0.15);
+  --color-info-blue: #3b82f6;
+  --color-info-blue-dim: rgba(59, 130, 246, 0.15);
+  --color-congestion-orange: #f97316;
+  --color-congestion-orange-dim: rgba(249, 115, 22, 0.15);
+
+  --font-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", monospace;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-navy-950);
+  color: var(--color-slate-200);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-navy-900);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-navy-600);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-navy-500);
+}
+
+/* ── Animations ────────────────────────────────────────────────────── */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(239, 68, 68, 0.6);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.35s ease-out forwards;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* ── Mapbox Overrides ──────────────────────────────────────────────── */
+.mapboxgl-popup-content {
+  background: var(--color-navy-800) !important;
+  color: var(--color-slate-200) !important;
+  border: 1px solid var(--color-navy-600) !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12px !important;
+}
+
+.mapboxgl-popup-tip {
+  border-top-color: var(--color-navy-800) !important;
+}
+
+.mapboxgl-popup-close-button {
+  color: var(--color-charcoal-400) !important;
+  font-size: 16px !important;
+  right: 4px !important;
+  top: 4px !important;
+}
+
+.mapboxgl-ctrl-group {
+  background: var(--color-navy-800) !important;
+  border: 1px solid var(--color-navy-600) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.mapboxgl-ctrl-group button {
+  background: transparent !important;
+  border-bottom: 1px solid var(--color-navy-700) !important;
+}
+
+.mapboxgl-ctrl-group button:hover {
+  background: var(--color-navy-700) !important;
+}
+
+.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+  filter: invert(0.8);
+}
+
+/* ── Utility Classes ───────────────────────────────────────────────── */
+.glass {
+  background: rgba(17, 29, 53, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(26, 39, 68, 0.6);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot--connected {
+  background-color: var(--color-clear-green);
+  box-shadow: 0 0 6px var(--color-clear-green);
+}
+
+.status-dot--disconnected {
+  background-color: var(--color-threat-red);
+  box-shadow: 0 0 6px var(--color-threat-red);
+}

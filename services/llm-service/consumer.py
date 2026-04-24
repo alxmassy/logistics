@@ -55,7 +55,7 @@ class AIServiceConsumer:
             OPTIMIZATION_REQUESTS_TOPIC,
             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
             group_id=CONSUMER_GROUP_ID,
-            auto_offset_reset="earliest",
+            auto_offset_reset="latest",
         )
         self.producer = AIOKafkaProducer(
             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
