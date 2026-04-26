@@ -63,9 +63,10 @@ jobs:
 
             # ── Ensure Docker Compose is installed ───────────────────────
             if ! sudo docker compose version &> /dev/null; then
-              echo ">>> Docker Compose plugin not found. Installing..."
-              sudo apt-get update
-              sudo apt-get install -y docker-compose-plugin
+              echo ">>> Docker Compose plugin not found. Installing via binary..."
+              sudo mkdir -p /usr/local/lib/docker/cli-plugins
+              sudo curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
             fi
 
             # ── Deploy with Docker Compose ──────────────────────────────
