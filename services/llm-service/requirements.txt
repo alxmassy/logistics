@@ -1,7 +1,7 @@
 fastapi
 uvicorn[standard]
 aiokafka
-google-cloud-aiplatform
+google-generativeai>=0.8.0
 pydantic>=2.0
 redis[asyncio]
 python-dotenv

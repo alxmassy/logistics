@@ -178,7 +178,7 @@ async def lifespan(app: FastAPI):
 # ── App ──────────────────────────────────────────────────────────────
 app = FastAPI(
     title="LLM Optimization Service",
-    description="Phase 4 — Vertex AI route optimization & execution gateway",
+    description="Phase 4 — Gemini AI route optimization & execution gateway",
     version="1.0.0",
     lifespan=lifespan,
 )

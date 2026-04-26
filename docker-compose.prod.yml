@@ -1,0 +1,179 @@
+# =============================================================================
+# Logistics Platform — Production Docker Compose (Azure VM)
+#
+# All backend services + infrastructure + TLS reverse proxy.
+# The dashboard is hosted separately on GCP Firebase.
+#
+# Prerequisites:
+#   - .env.prod file with secrets (created by deploy script)
+#   - Domain pointing to VM IP (DuckDNS or custom domain)
+#   - Ports 80, 443 open in Azure NSG
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml down
+#   docker compose -f docker-compose.prod.yml logs -f bridge
+# =============================================================================
+
+services:
+
+  # ── Infrastructure ────────────────────────────────────────────────────
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
+    container_name: logistics-redpanda
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --smp=1
+      - --memory=512M
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+      - --schema-registry-addr=internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --pandaproxy-addr=internal://0.0.0.0:8082,external://0.0.0.0:18082
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: logistics-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Application Services ──────────────────────────────────────────────
+
+  ingestion-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: logistics-ingestion-api
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      REDIS_URL: redis://redis:6379/0
+      API_HOST: "0.0.0.0"
+      API_PORT: "8000"
+    ports:
+      - "8000:8000"
+    command: ["python", "-m", "services.ingestion", "serve"]
+    restart: unless-stopped
+
+  flink-job:
+    build:
+      context: .
+      dockerfile: infra/flink/Dockerfile
+    container_name: logistics-flink-collision
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      PYTHONUNBUFFERED: "1"
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      TELEMETRY_TOPIC: shipment-telemetry
+      THREAT_TOPIC: threat-signals
+      ANOMALY_ALERTS_TOPIC: anomaly-alerts
+      WATERMARK_TOLERANCE_MS: "120000"
+      THREAT_TTL_S: "600"
+      FLINK_TELEMETRY_GROUP_ID: flink-collision-telemetry
+      FLINK_THREAT_GROUP_ID: flink-collision-threats
+    restart: unless-stopped
+
+  context-assembly:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: logistics-context-assembly
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      REDIS_URL: redis://redis:6379/0
+      ANOMALY_ALERTS_TOPIC: anomaly-alerts
+      OPTIMIZATION_REQUESTS_TOPIC: optimization-requests
+      CONSUMER_GROUP_ID: context-assembly
+    command: ["python", "-m", "services.prediction.context_assembly"]
+    restart: unless-stopped
+
+  llm-service:
+    build:
+      context: ./services/llm-service
+      dockerfile: Dockerfile
+    container_name: logistics-llm-service
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      REDIS_URL: redis://redis:6379/0
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    restart: unless-stopped
+
+  bridge:
+    build:
+      context: ./services/bridge
+    container_name: logistics-bridge
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      REDIS_URL: redis://redis:6379/0
+      LLM_SERVICE_URL: http://logistics-llm-service:8080
+      PORT: "3001"
+    # Port exposed only to Caddy, not to the host
+    expose:
+      - "3001"
+    restart: unless-stopped
+
+  # ── TLS Reverse Proxy ────────────────────────────────────────────────
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: logistics-caddy
+    depends_on:
+      - bridge
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN: ${DOMAIN}
+    restart: unless-stopped
+
+volumes:
+  redpanda_data:
+    driver: local
+  redis_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

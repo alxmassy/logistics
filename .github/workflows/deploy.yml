@@ -1,0 +1,74 @@
+# =============================================================================
+# Deploy to Azure VM
+#
+# Triggered on push to main branch.
+# SSHs into the VM, pulls latest code, writes secrets to .env.prod,
+# and restarts all Docker containers.
+#
+# Required GitHub Secrets:
+#   AZURE_VM_SSH_KEY   — SSH private key (ed25519 or RSA)
+#   GEMINI_API_KEY     — Google Gemini API key
+#   DOMAIN             — Domain pointing to VM (e.g., logistics-cmd.duckdns.org)
+# =============================================================================
+
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 57.159.30.196
+          username: ubuntu
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          command_timeout: 12m
+          script: |
+            set -euo pipefail
+
+            REPO_DIR="/opt/logistics"
+            REPO_URL="https://github.com/${{ github.repository }}.git"
+
+            # ── Clone or pull ───────────────────────────────────────────
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              echo ">>> First deploy: cloning repository..."
+              sudo mkdir -p "$REPO_DIR"
+              sudo chown ubuntu:ubuntu "$REPO_DIR"
+              git clone "$REPO_URL" "$REPO_DIR"
+            else
+              echo ">>> Pulling latest changes..."
+              cd "$REPO_DIR"
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+
+            cd "$REPO_DIR"
+
+            # ── Write production environment file ───────────────────────
+            cat > .env.prod << 'ENVEOF'
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            DOMAIN=${{ secrets.DOMAIN }}
+            ENVEOF
+            # Remove leading whitespace from heredoc
+            sed -i 's/^[[:space:]]*//' .env.prod
+
+            # ── Deploy with Docker Compose ──────────────────────────────
+            echo ">>> Building and starting services..."
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --remove-orphans
+
+            # ── Cleanup ─────────────────────────────────────────────────
+            echo ">>> Pruning old images..."
+            docker image prune -f
+
+            # ── Status ──────────────────────────────────────────────────
+            echo ">>> Deployment complete. Container status:"
+            docker compose -f docker-compose.prod.yml ps

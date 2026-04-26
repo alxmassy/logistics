@@ -1,0 +1,12 @@
+# =============================================================================
+# Caddy Reverse Proxy — TLS termination for the bridge service
+#
+# Caddy auto-provisions Let's Encrypt TLS certificates.
+# The {$DOMAIN} env var must be set (e.g., logistics-cmd.duckdns.org).
+# =============================================================================
+
+{$DOMAIN} {
+    # All traffic proxied to the bridge container
+    # Handles: Socket.io WebSocket, /health, /api/execute/*
+    reverse_proxy bridge:3001
+}

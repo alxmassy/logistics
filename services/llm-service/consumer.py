@@ -1,6 +1,6 @@
 """
 Kafka Consumer — reads from `optimization-requests`, orchestrates the
-Vertex AI → Rule Engine pipeline, and publishes to `reroute-decisions`.
+Gemini AI → Rule Engine pipeline, and publishes to `reroute-decisions`.
 """
 import os
 import json
@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from rule_engine import LLMOptimizationRequest, LLMDecision, ExecutionPayload
 from prompt_builder import build_prompt
-from vertex_client import VertexClient
+from gemini_client import GeminiClient
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class AIServiceConsumer:
         """
         self.redis = redis_client
         self.ws_broadcast = ws_broadcast_fn
-        self.vertex = VertexClient()
+        self.gemini = GeminiClient()
         self.consumer: AIOKafkaConsumer | None = None
         self.producer: AIOKafkaProducer | None = None
         self.running = False
@@ -101,7 +101,7 @@ class AIServiceConsumer:
         try:
             # ② Prompt → Vertex AI
             prompt = build_prompt(request_payload)
-            decision_dict = await self.vertex.get_optimization_decision(prompt)
+            decision_dict = await self.gemini.get_optimization_decision(prompt)
             decision = LLMDecision(**decision_dict)
 
             # ③ Risk scoring
