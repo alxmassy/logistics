@@ -14,6 +14,7 @@ WORKDIR /app
 
 # Install the project and its dependencies
 COPY pyproject.toml .
+COPY README.md .
 COPY services/ services/
 COPY shared/ shared/
 
