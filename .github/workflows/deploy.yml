@@ -61,14 +61,21 @@ jobs:
             # Remove leading whitespace from heredoc
             sed -i 's/^[[:space:]]*//' .env.prod
 
+            # ── Handle Docker Compose versioning ───────────────────────
+            if command -v docker-compose &> /dev/null; then
+              COMPOSE="sudo docker-compose"
+            else
+              COMPOSE="sudo docker compose"
+            fi
+
             # ── Deploy with Docker Compose ──────────────────────────────
             echo ">>> Building and starting services..."
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --remove-orphans
+            $COMPOSE -f docker-compose.prod.yml --env-file .env.prod up -d --build --remove-orphans
 
             # ── Cleanup ─────────────────────────────────────────────────
             echo ">>> Pruning old images..."
-            docker image prune -f
+            sudo docker image prune -f
 
             # ── Status ──────────────────────────────────────────────────
             echo ">>> Deployment complete. Container status:"
-            docker compose -f docker-compose.prod.yml ps
+            $COMPOSE -f docker-compose.prod.yml ps
